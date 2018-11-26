@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Ping Pong</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  </head>
+  <body class="py-4">
+    <div id="app">
+      <div class="container">
+        <div class="card mb-3">
+          <h4 class="card-header text-light" :style="{ backgroundImage: p1bg }">
+            Player 1
+          </h4>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="p1name">Name:</label>
+              <input type="text" class="form-control" id="p1name" v-model="names.p1" @input="setName('p1')">
+            </div>
+            <div class="row no-gutters">
+              <div class="col pr-2">
+                  <button type="button" class="btn btn-outline-success btn-block" @click="add('p1')">Add</button>
+              </div>
+              <div class="col">
+                  <button type="button" class="btn btn btn-outline-secondary btn-block" @click="undo('p1')">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-3">
+          <h4 class="card-header" :style="{ backgroundImage: p2bg }">
+            Player 2
+          </h4>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="p2name">Name:</label>
+              <input type="text" class="form-control" id="p2name" v-model="names.p2" @input="setName('p2')">
+            </div>
+            <div class="row no-gutters">
+              <div class="col pr-2">
+                  <button type="button" class="btn btn-outline-success btn-block" @click="add('p2')">Add</button>
+              </div>
+              <div class="col">
+                  <button type="button" class="btn btn btn-outline-secondary btn-block" @click="undo('p2')">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-3">
+          <h4 class="card-header">
+            Game settings
+          </h4>
+          <div class="card-body">
+              <button type="button" class="btn btn-outline-primary btn-lg btn-primary" :class="{active: goal==11}" @click="setRules(11,2)">11 points</button>
+              <button type="button" class="btn btn-outline-primary btn-secondary btn-lg" :class="{active: goal==5}" @click="setRules(5,1)">5 points</button>
+              <div class="mt-3">
+                  <button type="button" class="btn btn-danger btn-block" @click="reset()">Reset score</button>
+              </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/geopattern/1.2.3/js/geopattern.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io();
+      var app = new Vue({
+        el: '#app',
+        data: {
+          goal: 11,
+          servesPerPlayer: 2,
+          names: {
+            p1: "Player 1",
+            p2: "Player 2"
+          }
+        },
+        computed: {
+          p1bg: function() {
+            return GeoPattern.generate(this.names.p1, { color: '#000' }).toDataUrl();
+          },
+          p2bg: function() {
+            return GeoPattern.generate(this.names.p2, { color: '#fff' }).toDataUrl();
+          }
+        },
+        methods: {
+          setName: function(player) {
+            socket.emit('set_name', {
+              player: player,
+              name: this.names[player]
+            });
+          },
+          reset: function(player) {
+            socket.emit('reset');
+          },
+          setRules: function(goal, servesPerPlayer) {
+            this.goal = goal;
+            this.servesPerPlayer = servesPerPlayer;
+            socket.emit('set_rules', {
+              goal: goal,
+              servesPerPlayer: servesPerPlayer
+            });
+          },
+          add: function(player) {
+            socket.emit('add', player);
+          },
+          undo: function(player) {
+            socket.emit('undo', player);
+          }
+        }
+      })
+      socket.on('update_scores', function(e) {
+        app.names = e.names;
+      });
+    </script>
+  </body>
+</html>
